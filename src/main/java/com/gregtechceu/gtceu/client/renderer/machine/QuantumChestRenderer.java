@@ -58,7 +58,7 @@ public class QuantumChestRenderer extends TieredHullMachineRenderer {
             int storedAmount = stack.getOrCreateTag().getInt("storedAmount");
             float tick = Minecraft.getInstance().level.getGameTime() + Minecraft.getInstance().getFrameTime();
             // Don't need to handle locked items here since they don't get saved to the item
-            renderChest(poseStack, buffer, Direction.NORTH, itemStack, storedAmount, tick, ItemStack.EMPTY);
+            renderChest(poseStack, buffer, Direction.NORTH, itemStack, storedAmount, tick, ItemStack.EMPTY, false);
 
             poseStack.popPose();
         }
@@ -75,45 +75,48 @@ public class QuantumChestRenderer extends TieredHullMachineRenderer {
             var frontFacing = machine.getFrontFacing();
             float tick = level.getGameTime() + partialTicks;
             renderChest(poseStack, buffer, frontFacing, machine.getStored(), machine.getStoredAmount(), tick,
-                    machine.getLockedItem().getStackInSlot(0));
+                    machine.getLockedItem().getStackInSlot(0), machine.isEnableItemRender());
         }
     }
 
     @OnlyIn(Dist.CLIENT)
     public void renderChest(PoseStack poseStack, MultiBufferSource buffer, Direction frontFacing, ItemStack stored,
-                            int storedAmount, float tick, ItemStack locked) {
+                            int storedAmount, float tick, ItemStack locked, boolean renderItem) {
         ItemStack itemStack = !stored.isEmpty() ? stored : locked;
         if (itemStack.isEmpty()) return;
 
-        var itemRenderer = Minecraft.getInstance().getItemRenderer();
-        poseStack.pushPose();
-        BakedModel bakedmodel = itemRenderer.getModel(itemStack, Minecraft.getInstance().level, null,
-                Item.getId(itemStack.getItem()) + itemStack.getDamageValue());
-        poseStack.translate(0.5D, 0.5d, 0.5D);
-        poseStack.mulPose(new Quaternionf().rotateAxis(tick * Mth.TWO_PI / 80, 0, 1, 0));
-        poseStack.scale(0.6f, 0.6f, 0.6f);
-        itemRenderer.render(itemStack, ItemDisplayContext.FIXED, false, poseStack, buffer, 0xf000f0,
-                OverlayTexture.NO_OVERLAY, bakedmodel);
-        poseStack.popPose();
+        if(renderItem) {
+            var itemRenderer = Minecraft.getInstance().getItemRenderer();
+            poseStack.pushPose();
+            BakedModel bakedmodel = itemRenderer.getModel(itemStack, Minecraft.getInstance().level, null,
+                    Item.getId(itemStack.getItem()) + itemStack.getDamageValue());
+            poseStack.translate(0.5D, 0.5d, 0.5D);
+            poseStack.mulPose(new Quaternionf().rotateAxis(tick * Mth.TWO_PI / 80, 0, 1, 0));
+            poseStack.scale(0.6f, 0.6f, 0.6f);
+            itemRenderer.render(itemStack, ItemDisplayContext.FIXED, false, poseStack, buffer, 0xf000f0,
+                    OverlayTexture.NO_OVERLAY, bakedmodel);
+            poseStack.popPose();
 
-        poseStack.pushPose();
-        RenderSystem.disableDepthTest();
-        poseStack.translate(frontFacing.getStepX() * -1 / 16f, frontFacing.getStepY() * -1 / 16f,
-                frontFacing.getStepZ() * -1 / 16f);
-        RenderUtils.moveToFace(poseStack, 0, 0, 0, frontFacing);
-        if (frontFacing.getAxis() == Direction.Axis.Y) {
-            RenderUtils.rotateToFace(poseStack, frontFacing,
-                    frontFacing == Direction.UP ? Direction.SOUTH : Direction.NORTH);
-        } else {
-            RenderUtils.rotateToFace(poseStack, frontFacing, null);
+
+            poseStack.pushPose();
+            RenderSystem.disableDepthTest();
+            poseStack.translate(frontFacing.getStepX() * -1 / 16f, frontFacing.getStepY() * -1 / 16f,
+                    frontFacing.getStepZ() * -1 / 16f);
+            RenderUtils.moveToFace(poseStack, 0, 0, 0, frontFacing);
+            if (frontFacing.getAxis() == Direction.Axis.Y) {
+                RenderUtils.rotateToFace(poseStack, frontFacing,
+                        frontFacing == Direction.UP ? Direction.SOUTH : Direction.NORTH);
+            } else {
+                RenderUtils.rotateToFace(poseStack, frontFacing, null);
+            }
+            var amount = stored.isEmpty() ? "*" : TextFormattingUtil.formatLongToCompactString(storedAmount, 4);
+            poseStack.scale(1f / 64, 1f / 64, 0);
+            poseStack.translate(-32, -32, 0);
+            new TextTexture(amount).draw(GuiGraphicsAccessor.create(Minecraft.getInstance(), poseStack,
+                    MultiBufferSource.immediate(Tesselator.getInstance().getBuilder())), 0, 0, 0, 24, 64, 28);
+            RenderSystem.enableDepthTest();
+            poseStack.popPose();
         }
-        var amount = stored.isEmpty() ? "*" : TextFormattingUtil.formatLongToCompactString(storedAmount, 4);
-        poseStack.scale(1f / 64, 1f / 64, 0);
-        poseStack.translate(-32, -32, 0);
-        new TextTexture(amount).draw(GuiGraphicsAccessor.create(Minecraft.getInstance(), poseStack,
-                MultiBufferSource.immediate(Tesselator.getInstance().getBuilder())), 0, 0, 0, 24, 64, 28);
-        RenderSystem.enableDepthTest();
-        poseStack.popPose();
     }
 
     @OnlyIn(Dist.CLIENT)

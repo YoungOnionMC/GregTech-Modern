@@ -95,6 +95,10 @@ public class QuantumTankMachine extends TieredMachine implements IAutoOutputFlui
     @Getter
     @Setter
     private boolean isVoiding;
+    @Persisted
+    @DescSynced
+    @Getter
+    private boolean enableFluidRender = true;
 
     public QuantumTankMachine(IMachineBlockEntity holder, int tier, long maxStoredFluids, Object... args) {
         super(holder, tier);
@@ -298,6 +302,15 @@ public class QuantumTankMachine extends TieredMachine implements IAutoOutputFlui
         }
 
         return super.onWrenchClick(playerIn, hand, gridSide, hitResult);
+    }
+
+    @Override
+    protected InteractionResult onSoftMalletClick(Player playerIn, InteractionHand hand, Direction gridSide, BlockHitResult hitResult) {
+        if(!isRemote()) {
+            enableFluidRender = !enableFluidRender;
+            return InteractionResult.CONSUME;
+        }
+        return super.onSoftMalletClick(playerIn, hand, gridSide, hitResult);
     }
 
     @Override

@@ -107,6 +107,10 @@ public class QuantumChestMachine extends TieredMachine implements IAutoOutputIte
     @DescSynced
     @Getter
     private final ItemStackTransfer lockedItem;
+    @Persisted
+    @DescSynced
+    @Getter
+    private boolean enableItemRender = true;
 
     public QuantumChestMachine(IMachineBlockEntity holder, int tier, int maxStoredItems, Object... args) {
         super(holder, tier);
@@ -330,6 +334,15 @@ public class QuantumChestMachine extends TieredMachine implements IAutoOutputIte
         }
 
         return super.onWrenchClick(playerIn, hand, gridSide, hitResult);
+    }
+
+    @Override
+    protected InteractionResult onSoftMalletClick(Player playerIn, InteractionHand hand, Direction gridSide, BlockHitResult hitResult) {
+        if(!isRemote()) {
+            enableItemRender = !enableItemRender;
+            return InteractionResult.CONSUME;
+        }
+        return super.onSoftMalletClick(playerIn, hand, gridSide, hitResult);
     }
 
     @Override
